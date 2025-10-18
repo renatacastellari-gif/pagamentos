@@ -1,18 +1,23 @@
 import streamlit as st
 import pandas as pd
 import os
+from datetime import datetime
 
 # Configuração da página
 st.set_page_config(page_title="Cadastro de Impostos", page_icon="🟪", layout="centered")
 
-# Senha fixa
-PASSWORD = "minhasenha123"
+# Usuários e senhas
+USERS = {
+    "admin": "senha_admin123",
+    "financeiro": "senha_financeiro456"
+}
 
 # Inicializa estado de login
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+    st.session_state.usuario = None
 
-# 🔒 Esconde a barra lateral com CSS se não estiver logado
+# 🔒 Esconde a barra lateral se não estiver logado
 if not st.session_state.logged_in:
     hide_sidebar = """
         <style>
@@ -24,23 +29,26 @@ if not st.session_state.logged_in:
 # 🔐 Tela de login
 if not st.session_state.logged_in:
     st.title("Acesso Restrito")
-    senha = st.text_input("Digite a senha:", type="password")
+    usuario = st.text_input("Usuário:")
+    senha = st.text_input("Senha:", type="password")
     if st.button("Entrar"):
-        if senha == PASSWORD:
+        if usuario in USERS and senha == USERS[usuario]:
             st.session_state.logged_in = True
-            st.success("Acesso liberado! Agora você pode navegar pelas páginas.")
+            st.session_state.usuario = usuario
+            st.success(f"Acesso liberado para {usuario}!")
             st.rerun()
         else:
-            st.error("Senha incorreta.")
+            st.error("Usuário ou senha incorretos.")
 
 # 🔓 Conteúdo protegido
 if st.session_state.logged_in:
-    st.markdown("🔓 Você está logado.")
+    st.markdown(f"🔓 Logado como **{st.session_state.usuario}**")
     st.image('teste.svg', width=400)
 
     # Botão de logout
     if st.sidebar.button("Sair"):
         st.session_state.logged_in = False
+        st.session_state.usuario = None
         st.rerun()
 
     FILE_PATH = "impostos.csv"
@@ -52,7 +60,8 @@ if st.session_state.logged_in:
             return pd.DataFrame(columns=[
                 "codigo_conta", "nome_imposto", "data_envio", "competencia",
                 "valor", "mora", "tx_expediente", "atualizacao", "multa", "juros",
-                "desconto", "total", "vencimento", "texto_lacto", "data_pagamento", "banco"
+                "desconto", "total", "vencimento", "texto_lacto", "data_pagamento", "banco",
+                "ultima_edicao_por", "ultima_edicao_em"
             ])
 
     def save_data(df):
@@ -98,6 +107,7 @@ if st.session_state.logged_in:
 
     menu = st.sidebar.selectbox("Menu", ["Cadastrar Imposto", "Registros Cadastrados"])
 
+    # ✅ Cadastro
     if menu == "Cadastrar Imposto":
         st.title("Cadastro de Imposto")
 
@@ -143,13 +153,38 @@ if st.session_state.logged_in:
                 "vencimento": vencimento.strftime("%d/%m/%Y"),
                 "texto_lacto": texto_lacto,
                 "data_pagamento": data_pagamento.strftime("%d/%m/%Y"),
-                "banco": banco
+                "banco": banco,
+                "ultima_edicao_por": st.session_state.usuario,
+                "ultima_edicao_em": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             }
 
             data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
             save_data(data)
             st.success("Registro salvo com sucesso!")
 
+    # ✅ Consulta e edição
     elif menu == "Registros Cadastrados":
         st.title("Registros Cadastrados")
-        st.dataframe(data, use_container_width=True)
+
+        # Filtros
+        filtro_conta = st.selectbox("Filtrar por Código/Conta", ["Todos"] + list(codigo_conta.keys()))
+        filtro_competencia = st.selectbox("Filtrar por Competência", ["Todos"] + competencias)
+
+        df_filtrado = data.copy()
+        if filtro_conta != "Todos":
+            df_filtrado = df_filtrado[df_filtrado["codigo_conta"] == filtro_conta]
+        if filtro_competencia != "Todos":
+            df_filtrado = df_filtrado[df_filtrado["competencia"] == filtro_competencia]
+
+        edited_data = st.data_editor(df_filtrado, use_container_width=True, num_rows="dynamic")
+
+        if st.button("Salvar Alterações"):
+            edited_data["ultima_edicao_por"] = st.session_state.usuario
+            edited_data["ultima_edicao_em"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            save_data(edited_data)
+            st.success("Alterações salvas com sucesso!")
+
+        # Exportar para Excel
+        if st.button("Exportar para Excel"):
+            edited_data.to_excel("impostos.xlsx", index=False)
+            st.success("Arquivo Excel gerado com sucesso!")
