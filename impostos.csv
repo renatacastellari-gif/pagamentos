@@ -1,0 +1,11 @@
+codigo_conta,nome_imposto,data_envio,competencia,valor,mora,tx_expediente,atualizacao,multa,juros,desconto,total,vencimento,texto_lacto,data_pagamento,banco
+1 - 2300390,IPI a recolher,17/10/2025,01/2025,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,17/10/2025,,17/10/2025,Banco do Brasil
+1 - 2300390,IPI a recolher,17/10/2025,01/2025,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,17/10/2025,,17/10/2025,Banco do Brasil
+1 - 2300390,IPI a recolher,17/10/2025,01/2025,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,17/10/2025,,17/10/2025,Banco do Brasil
+3 - 2300393,GNRE ANTECIPADO,18/10/2025,04/2025,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,18/10/2025,,18/10/2025,Banco do Brasil
+1 - 2300390,IPI a recolher,18/10/2025,01/2025,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,18/10/2025,,18/10/2025,Banco do Brasil
+1 - 2300390,ICMS a recolher,18/10/2025,01/2025,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,18/10/2025,,18/10/2025,Banco do Brasil
+4 - 2300394,ICMS ST,18/10/2025,01/2025,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,18/10/2025,,18/10/2025,Banco do Brasil
+7 - 2300397,Parcelamento CP,18/10/2025,01/2025,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,18/10/2025,,18/10/2025,Banco do Brasil
+3 - 2300393,IPI a recolher,14/10/2025,08/2025,10.0,10.0,0.0,0.0,0.0,0.0,0.0,0.0,16/10/2025,ICMS SOBRE LALALALA,18/10/2025,Banco do Brasil
+2 - 2300391,Taxas,18/10/2025,02/2025,0.0,1.0,1.0,100.0,100.0,100.0,0.0,2.0,18/10/2025,,18/10/2025,Banco do Brasil
