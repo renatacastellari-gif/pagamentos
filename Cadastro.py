@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
+import pytz
 
 # Configuração da página
 st.set_page_config(page_title="Cadastro de Impostos", page_icon="🟪", layout="centered")
@@ -111,24 +112,29 @@ if st.session_state.logged_in:
     if menu == "Cadastrar Imposto":
         st.title("Cadastro de Imposto")
 
-        codigo_conta_sel = st.selectbox("Código do Imposto / Conta", list(codigo_conta.keys()))
-        nome_imposto = st.selectbox("Nome do Imposto", nomes_impostos)
+        # Campos obrigatórios
+        codigo_conta_sel = st.selectbox("Código do Imposto / Conta", [""] + list(codigo_conta.keys()))
+        nome_imposto = st.selectbox("Nome do Imposto", [""] + nomes_impostos)
         data_envio = st.date_input("Data de Envio", format="DD/MM/YYYY")
-        competencia = st.selectbox("Competência", competencias)
+        competencia = st.selectbox("Competência", [""] + competencias)
 
-        # Campos numéricos
-        valor = st.text_input("Valor", "0,00")
-        mora = st.text_input("Mora", "0,00")
-        tx_expediente = st.text_input("Tx. Expediente", "0,00")
-        atualizacao = st.text_input("Atualização", "0,00")
-        multa = st.text_input("Multa", "0,00")
-        juros = st.text_input("Juros", "0,00")
-        desconto = st.text_input("Desconto", "0,00")
+        valor = st.text_input("Valor", "")
+        mora = st.text_input("Mora", "")
+        tx_expediente = st.text_input("Tx. Expediente", "")
+        atualizacao = st.text_input("Atualização", "")
+        multa = st.text_input("Multa", "")
+        juros = st.text_input("Juros", "")
+        desconto = st.text_input("Desconto", "")
+
+        vencimento = st.date_input("Vencimento", format="DD/MM/YYYY")
+        texto_lacto = st.text_input("Texto Lacto", "")
+        data_pagamento = st.date_input("Data de Pagamento", format="DD/MM/YYYY")
+        banco = st.selectbox("Banco", [""] + bancos_filtrados)
 
         # Calcula total automaticamente
         def to_float(val):
             try:
-                return float(val.replace(",", "."))
+                return float(val.replace(",", ".")) if val else 0.0
             except:
                 return 0.0
 
@@ -140,42 +146,53 @@ if st.session_state.logged_in:
 
         st.text_input("Total", f"{total_calc:,.2f}", disabled=True)
 
-        vencimento = st.date_input("Vencimento", format="DD/MM/YYYY")
-        texto_lacto = st.text_input("Texto Lacto")
-        data_pagamento = st.date_input("Data de Pagamento", format="DD/MM/YYYY")
-        banco = st.selectbox("Banco", bancos_filtrados)
+        # Validação dos campos obrigatórios
+        campos_obrigatorios = {
+            "Código do Imposto / Conta": codigo_conta_sel,
+            "Nome do Imposto": nome_imposto,
+            "Competência": competencia,
+            "Valor": valor,
+            "Vencimento": vencimento,
+            "Texto Lacto": texto_lacto,
+            "Banco": banco,
+            "Data de Pagamento": data_pagamento
+        }
 
         if st.button("Salvar"):
-            new_row = {
-                "codigo_conta": codigo_conta_sel,
-                "nome_imposto": nome_imposto,
-                "data_envio": data_envio.strftime("%d/%m/%Y"),
-                "competencia": competencia,
-                "valor": to_float(valor),
-                "mora": to_float(mora),
-                "tx_expediente": to_float(tx_expediente),
-                "atualizacao": to_float(atualizacao),
-                "multa": to_float(multa),
-                "juros": to_float(juros),
-                "desconto": to_float(desconto),
-                "total": total_calc,
-                "vencimento": vencimento.strftime("%d/%m/%Y"),
-                "texto_lacto": texto_lacto,
-                "data_pagamento": data_pagamento.strftime("%d/%m/%Y"),
-                "banco": banco,
-                "ultima_edicao_por": st.session_state.usuario,
-                "ultima_edicao_em": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-            }
+            faltando = [campo for campo, valor in campos_obrigatorios.items() if not valor]
+            if faltando:
+                st.error(f"Preencha os campos obrigatórios: {', '.join(faltando)}")
+            else:
+                hora_brasilia = datetime.now(pytz.timezone("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M:%S")
+                new_row = {
+                    "codigo_conta": codigo_conta_sel,
+                    "nome_imposto": nome_imposto,
+                    "data_envio": data_envio.strftime("%d/%m/%Y"),
+                    "competencia": competencia,
+                    "valor": to_float(valor),
+                    "mora": to_float(mora),
+                    "tx_expediente": to_float(tx_expediente),
+                    "atualizacao": to_float(atualizacao),
+                    "multa": to_float(multa),
+                    "juros": to_float(juros),
+                    "desconto": to_float(desconto),
+                    "total": total_calc,
+                    "vencimento": vencimento.strftime("%d/%m/%Y"),
+                    "texto_lacto": texto_lacto,
+                    "data_pagamento": data_pagamento.strftime("%d/%m/%Y"),
+                    "banco": banco,
+                    "ultima_edicao_por": st.session_state.usuario,
+                    "ultima_edicao_em": hora_brasilia
+                }
 
-            data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
-            save_data(data)
-            st.success("Registro salvo com sucesso!")
+                data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
+                save_data(data)
+                st.success("Registro salvo com sucesso!")
 
     # ✅ Consulta e edição
     elif menu == "Registros Cadastrados":
         st.title("Registros Cadastrados")
 
-        # Filtros
         filtro_conta = st.selectbox("Filtrar por Código/Conta", ["Todos"] + list(codigo_conta.keys()))
         filtro_competencia = st.selectbox("Filtrar por Competência", ["Todos"] + competencias)
 
@@ -188,12 +205,12 @@ if st.session_state.logged_in:
         edited_data = st.experimental_data_editor(df_filtrado, use_container_width=True, num_rows="dynamic")
 
         if st.button("Salvar Alterações"):
+            hora_brasilia = datetime.now(pytz.timezone("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M:%S")
             edited_data["ultima_edicao_por"] = st.session_state.usuario
-            edited_data["ultima_edicao_em"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            edited_data["ultima_edicao_em"] = hora_brasilia
             save_data(edited_data)
             st.success("Alterações salvas com sucesso!")
 
-        # Exportar para Excel
         if st.button("Exportar para Excel"):
             edited_data.to_excel("impostos.xlsx", index=False)
             st.success("Arquivo Excel gerado com sucesso!")
