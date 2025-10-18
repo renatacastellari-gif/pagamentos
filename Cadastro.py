@@ -116,6 +116,7 @@ if st.session_state.logged_in:
         data_envio = st.date_input("Data de Envio", format="DD/MM/YYYY")
         competencia = st.selectbox("Competência", competencias)
 
+        # Campos numéricos
         valor = st.text_input("Valor", "0,00")
         mora = st.text_input("Mora", "0,00")
         tx_expediente = st.text_input("Tx. Expediente", "0,00")
@@ -123,7 +124,21 @@ if st.session_state.logged_in:
         multa = st.text_input("Multa", "0,00")
         juros = st.text_input("Juros", "0,00")
         desconto = st.text_input("Desconto", "0,00")
-        total = st.text_input("Total", "0,00")
+
+        # Calcula total automaticamente
+        def to_float(val):
+            try:
+                return float(val.replace(",", "."))
+            except:
+                return 0.0
+
+        total_calc = (
+            to_float(valor) + to_float(mora) + to_float(tx_expediente) +
+            to_float(atualizacao) + to_float(multa) + to_float(juros) -
+            to_float(desconto)
+        )
+
+        st.text_input("Total", f"{total_calc:,.2f}", disabled=True)
 
         vencimento = st.date_input("Vencimento", format="DD/MM/YYYY")
         texto_lacto = st.text_input("Texto Lacto")
@@ -131,12 +146,6 @@ if st.session_state.logged_in:
         banco = st.selectbox("Banco", bancos_filtrados)
 
         if st.button("Salvar"):
-            def to_float(val):
-                try:
-                    return float(val.replace(",", "."))
-                except:
-                    return 0.0
-
             new_row = {
                 "codigo_conta": codigo_conta_sel,
                 "nome_imposto": nome_imposto,
@@ -149,7 +158,7 @@ if st.session_state.logged_in:
                 "multa": to_float(multa),
                 "juros": to_float(juros),
                 "desconto": to_float(desconto),
-                "total": to_float(total),
+                "total": total_calc,
                 "vencimento": vencimento.strftime("%d/%m/%Y"),
                 "texto_lacto": texto_lacto,
                 "data_pagamento": data_pagamento.strftime("%d/%m/%Y"),
@@ -176,7 +185,7 @@ if st.session_state.logged_in:
         if filtro_competencia != "Todos":
             df_filtrado = df_filtrado[df_filtrado["competencia"] == filtro_competencia]
 
-        edited_data = st.data_editor(df_filtrado, use_container_width=True, num_rows="dynamic")
+        edited_data = st.experimental_data_editor(df_filtrado, use_container_width=True, num_rows="dynamic")
 
         if st.button("Salvar Alterações"):
             edited_data["ultima_edicao_por"] = st.session_state.usuario
