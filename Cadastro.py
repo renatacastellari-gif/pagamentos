@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 import pytz
+import re
 
 # Configuração da página
 st.set_page_config(page_title="Cadastro de Impostos", page_icon="🟪", layout="centered")
@@ -108,11 +109,17 @@ if st.session_state.logged_in:
 
     menu = st.sidebar.selectbox("Menu", ["Cadastrar Imposto", "Registros Cadastrados"])
 
+    # Funções auxiliares
+    def validar_numero(valor):
+        return bool(re.match(r'^\d+(,\d{1,2})?$', valor)) or valor == ""
+
+    def to_float(val):
+        return float(val.replace(",", ".")) if validar_numero(val) and val else 0.0
+
     # ✅ Cadastro
     if menu == "Cadastrar Imposto":
         st.title("Cadastro de Imposto")
 
-        # Campos obrigatórios
         codigo_conta_sel = st.selectbox("Código do Imposto / Conta", [""] + list(codigo_conta.keys()))
         nome_imposto = st.selectbox("Nome do Imposto", [""] + nomes_impostos)
         data_envio = st.date_input("Data de Envio", format="DD/MM/YYYY")
@@ -132,12 +139,6 @@ if st.session_state.logged_in:
         banco = st.selectbox("Banco", [""] + bancos_filtrados)
 
         # Calcula total automaticamente
-        def to_float(val):
-            try:
-                return float(val.replace(",", ".")) if val else 0.0
-            except:
-                return 0.0
-
         total_calc = (
             to_float(valor) + to_float(mora) + to_float(tx_expediente) +
             to_float(atualizacao) + to_float(multa) + to_float(juros) -
@@ -163,31 +164,45 @@ if st.session_state.logged_in:
             if faltando:
                 st.error(f"Preencha os campos obrigatórios: {', '.join(faltando)}")
             else:
-                hora_brasilia = datetime.now(pytz.timezone("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M:%S")
-                new_row = {
-                    "codigo_conta": codigo_conta_sel,
-                    "nome_imposto": nome_imposto,
-                    "data_envio": data_envio.strftime("%d/%m/%Y"),
-                    "competencia": competencia,
-                    "valor": to_float(valor),
-                    "mora": to_float(mora),
-                    "tx_expediente": to_float(tx_expediente),
-                    "atualizacao": to_float(atualizacao),
-                    "multa": to_float(multa),
-                    "juros": to_float(juros),
-                    "desconto": to_float(desconto),
-                    "total": total_calc,
-                    "vencimento": vencimento.strftime("%d/%m/%Y"),
-                    "texto_lacto": texto_lacto,
-                    "data_pagamento": data_pagamento.strftime("%d/%m/%Y"),
-                    "banco": banco,
-                    "ultima_edicao_por": st.session_state.usuario,
-                    "ultima_edicao_em": hora_brasilia
+                # Validação numérica
+                campos_numericos = {
+                    "Valor": valor,
+                    "Mora": mora,
+                    "Tx. Expediente": tx_expediente,
+                    "Atualização": atualizacao,
+                    "Multa": multa,
+                    "Juros": juros,
+                    "Desconto": desconto
                 }
+                erros_numericos = [campo for campo, val in campos_numericos.items() if val and not validar_numero(val)]
+                if erros_numericos:
+                    st.error(f"Os seguintes campos possuem caracteres inválidos: {', '.join(erros_numericos)}")
+                else:
+                    hora_brasilia = datetime.now(pytz.timezone("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M:%S")
+                    new_row = {
+                        "codigo_conta": codigo_conta_sel,
+                        "nome_imposto": nome_imposto,
+                        "data_envio": data_envio.strftime("%d/%m/%Y"),
+                        "competencia": competencia,
+                        "valor": to_float(valor),
+                        "mora": to_float(mora),
+                        "tx_expediente": to_float(tx_expediente),
+                        "atualizacao": to_float(atualizacao),
+                        "multa": to_float(multa),
+                        "juros": to_float(juros),
+                        "desconto": to_float(desconto),
+                        "total": total_calc,
+                        "vencimento": vencimento.strftime("%d/%m/%Y"),
+                        "texto_lacto": texto_lacto,
+                        "data_pagamento": data_pagamento.strftime("%d/%m/%Y"),
+                        "banco": banco,
+                        "ultima_edicao_por": st.session_state.usuario,
+                        "ultima_edicao_em": hora_brasilia
+                    }
 
-                data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
-                save_data(data)
-                st.success("Registro salvo com sucesso!")
+                    data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
+                    save_data(data)
+                    st.success("Registro salvo com sucesso!")
 
     # ✅ Consulta e edição
     elif menu == "Registros Cadastrados":
