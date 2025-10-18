@@ -21,7 +21,7 @@ if not st.session_state.logged_in:
     """
     st.markdown(hide_sidebar, unsafe_allow_html=True)
 
-# Se não estiver logado, pede senha
+# 🔐 Tela de login
 if not st.session_state.logged_in:
     st.title("Acesso Restrito")
     senha = st.text_input("Digite a senha:", type="password")
@@ -32,9 +32,16 @@ if not st.session_state.logged_in:
             st.rerun()
         else:
             st.error("Senha incorreta.")
-else:
-    # 🔒 Conteúdo protegido
+
+# 🔓 Conteúdo protegido
+if st.session_state.logged_in:
+    st.markdown("🔓 Você está logado.")
     st.image('teste.svg', width=400)
+
+    # Botão de logout
+    if st.sidebar.button("Sair"):
+        st.session_state.logged_in = False
+        st.rerun()
 
     FILE_PATH = "impostos.csv"
 
@@ -89,7 +96,7 @@ else:
     ]
     bancos_filtrados = [b for b in bancos_originais if not b.startswith("Bradesco/")]
 
-    menu = st.sidebar.selectbox("Menu", ["Cadastrar Imposto"])
+    menu = st.sidebar.selectbox("Menu", ["Cadastrar Imposto", "Registros Cadastrados"])
 
     if menu == "Cadastrar Imposto":
         st.title("Cadastro de Imposto")
