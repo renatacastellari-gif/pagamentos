@@ -1,32 +1,24 @@
 import streamlit as st
-import psycopg2
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
+import pandas as pd
 
-st.set_page_config(page_title="Teste de Conexão com Banco", layout="centered")
+# Monta string de conexão a partir do secrets.toml
+DB_USER = st.secrets["DB_USER"]
+DB_PASSWORD = st.secrets["DB_PASSWORD"]
+DB_HOST = st.secrets["DB_HOST"]
+DB_PORT = st.secrets["DB_PORT"]
+DB_NAME = st.secrets["DB_NAME"]
 
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# Teste de conexão
 st.title("🧾 Teste de Conexão com Banco")
 
-# --- Credenciais do Supabase (ajuste conforme seu projeto) ---
-DB_USER = "postgres.etekiwkterkwrrpusob"  # copie exatamente do Supabase (usuário pooler)
-DB_HOST = "aws-1-us-east-2.pooler.supabase.com"
-DB_NAME = "postgres"
-DB_PORT = "5432"
-DB_PASSWORD = st.secrets["DB_PASSWORD"]  # senha armazenada no secrets.toml
-
-# String de conexão
-DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-# Função de teste
-def testar_conexao():
+if st.button("Testar conexão agora"):
     try:
         engine = create_engine(DATABASE_URL)
         with engine.connect() as conn:
-            result = conn.execute(text("SELECT NOW();"))
-            data = result.fetchone()
-        st.success(f"✅ Conexão bem-sucedida! Servidor respondeu em: {data[0]}")
+            result = conn.execute("SELECT NOW();")
+            st.success(f"✅ Conectado com sucesso! Hora atual no banco: {list(result)[0][0]}")
     except Exception as e:
-        st.error(f"❌ Erro ao conectar:\n\n{e}")
-
-# Botão de teste
-if st.button("Testar conexão agora"):
-    testar_conexao()
+        st.error(f"❌ Erro ao conectar: {e}")
