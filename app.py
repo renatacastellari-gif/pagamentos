@@ -154,4 +154,9 @@ if st.session_state.logged_in:
             hora_brasilia = datetime.now(pytz.timezone("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M:%S")
             edited_data["ultima_edicao_por"] = st.session_state.usuario
             edited_data["ultima_edicao_em"] = hora_brasilia
-           
+            save_data(edited_data)
+            st.success("Alterações salvas com sucesso!")
+
+        if st.button("Exportar para Excel"):
+            edited_data.to_excel("impostos.xlsx", index=False)
+            st.success("Arquivo Excel gerado com sucesso!")
