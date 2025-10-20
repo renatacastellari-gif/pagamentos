@@ -8,9 +8,9 @@ from sqlalchemy import create_engine
 # Configuração da página
 st.set_page_config(page_title="Cadastro de Impostos", page_icon="🛠️", layout="centered")
 
-# Conexão com Supabase
+# Conexão com Supabase usando Session Pooler
 DB_PASSWORD = st.secrets["DB_PASSWORD"]
-DATABASE_URL = f"postgresql://postgres:{DB_PASSWORD}@db.etekikwterktwrrpusob.supabase.co:5432/postgres"
+DATABASE_URL = f"postgresql://postgres:{DB_PASSWORD}@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
 engine = create_engine(DATABASE_URL)
 TABLE_NAME = "cadastro_impostos"
 
