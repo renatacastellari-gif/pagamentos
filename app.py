@@ -3,26 +3,53 @@ import pandas as pd
 import re
 from datetime import datetime
 import pytz
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
-# Configuração da página
+# ==============================
+# 🔧 CONFIGURAÇÃO DA PÁGINA
+# ==============================
 st.set_page_config(page_title="Cadastro de Impostos", page_icon="🛠️", layout="centered")
 
-# Conexão com Supabase usando Session Pooler
+# ==============================
+# 🔐 CONEXÃO COM SUPABASE
+# ==============================
+# A senha deve estar em .streamlit/secrets.toml:
+# DB_PASSWORD = "sua_senha_aqui"
+
 DB_PASSWORD = st.secrets["DB_PASSWORD"]
-DATABASE_URL = f"postgresql://postgres:{DB_PASSWORD}@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
-engine = create_engine(DATABASE_URL)
+
+# Use o usuário e host exatos da sua tela do Supabase (Session Pooler)
+DATABASE_URL = (
+    f"postgresql://postgres.etekiwkterkwrrpusob:{DB_PASSWORD}"
+    f"@aws-1-us-east-2.pooler.supabase.com:5432/postgres"
+)
 TABLE_NAME = "cadastro_impostos"
 
-# Usuários e senhas
+# Cria engine SQLAlchemy
+engine = create_engine(DATABASE_URL)
+
+# ==============================
+# 🧪 TESTE DE CONEXÃO
+# ==============================
+st.sidebar.subheader("🧪 Teste de Conexão com Banco")
+
+if st.sidebar.button("Testar conexão agora"):
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT NOW()")).fetchone()
+            st.sidebar.success(f"✅ Conectado com sucesso!\nServidor respondeu: {result[0]}")
+    except Exception as e:
+        st.sidebar.error(f"❌ Erro ao conectar: {e}")
+
+# ==============================
+# 🔐 LOGIN
+# ==============================
 USERS = {"admin": "senha_admin123", "financeiro": "senha_financeiro456"}
 
-# Estado de login
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.usuario = None
 
-# Tela de login
 if not st.session_state.logged_in:
     st.title("Acesso Restrito")
     usuario = st.text_input("Usuário:")
@@ -36,7 +63,9 @@ if not st.session_state.logged_in:
         else:
             st.error("Usuário ou senha incorretos.")
 
-# Conteúdo protegido
+# ==============================
+# 🔒 CONTEÚDO PROTEGIDO
+# ==============================
 if st.session_state.logged_in:
     st.markdown(f"🔒 Logado como **{st.session_state.usuario}**")
 
@@ -45,11 +74,14 @@ if st.session_state.logged_in:
         st.session_state.usuario = None
         st.rerun()
 
-    # Funções para banco
+    # ------------------------------
+    # Funções de banco
+    # ------------------------------
     def load_data():
         try:
             return pd.read_sql_table(TABLE_NAME, con=engine)
-        except Exception:
+        except Exception as e:
+            st.warning(f"⚠️ Não foi possível carregar dados: {e}")
             return pd.DataFrame(columns=[
                 "codigo_conta", "nome_imposto", "data_envio", "competencia", "valor", "mora",
                 "tx_expediente", "atualizacao", "multa", "juros", "desconto", "total",
@@ -58,11 +90,17 @@ if st.session_state.logged_in:
             ])
 
     def save_data(df):
-        df.to_sql(TABLE_NAME, con=engine, if_exists='append', index=False)
+        try:
+            df.to_sql(TABLE_NAME, con=engine, if_exists='append', index=False)
+            st.success("✅ Registro salvo com sucesso!")
+        except Exception as e:
+            st.error(f"❌ Erro ao salvar no banco: {e}")
 
+    # ------------------------------
+    # Dados fixos e menus
+    # ------------------------------
     data = load_data()
 
-    # Dados fixos
     codigo_conta = {
         "1 - 2300390": "2300390", "2 - 2300391": "2300391", "3 - 2300393": "2300393",
         "4 - 2300394": "2300394", "5 - 2300395": "2300395", "6 - 2300396": "2300396"
@@ -79,9 +117,12 @@ if st.session_state.logged_in:
     def to_float(val):
         return float(val.replace(",", ".")) if validar_numero(val) and val else 0.0
 
-    # Cadastro
+    # ------------------------------
+    # CADASTRO
+    # ------------------------------
     if menu == "Cadastrar Imposto":
         st.title("Cadastro de Imposto")
+
         codigo_conta_sel = st.selectbox("Código do Imposto / Conta", [""] + list(codigo_conta.keys()))
         nome_imposto = st.selectbox("Nome do Imposto", [""] + nomes_impostos)
         data_envio = st.date_input("Data de Envio", format="DD/MM/YYYY")
@@ -129,11 +170,12 @@ if st.session_state.logged_in:
                 "ultima_edicao_por": st.session_state.usuario,
                 "ultima_edicao_em": hora_brasilia
             }
-            data = pd.DataFrame([new_row])
-            save_data(data)
-            st.success("Registro salvo com sucesso!")
+            df = pd.DataFrame([new_row])
+            save_data(df)
 
-    # Consulta
+    # ------------------------------
+    # CONSULTA E EDIÇÃO
+    # ------------------------------
     elif menu == "Registros Cadastrados":
         st.title("Registros Cadastrados")
         filtro_conta = st.selectbox("Filtrar por Código/Conta", ["Todos"] + list(codigo_conta.keys()))
@@ -152,8 +194,7 @@ if st.session_state.logged_in:
             edited_data["ultima_edicao_por"] = st.session_state.usuario
             edited_data["ultima_edicao_em"] = hora_brasilia
             save_data(edited_data)
-            st.success("Alterações salvas com sucesso!")
 
         if st.button("Exportar para Excel"):
             edited_data.to_excel("impostos.xlsx", index=False)
-            st.success("Arquivo Excel gerado com sucesso!")
+            st.success("📄 Arquivo Excel gerado com sucesso!")
