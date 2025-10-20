@@ -15,10 +15,7 @@ engine = create_engine(DATABASE_URL)
 TABLE_NAME = "cadastro_impostos"
 
 # Usuários e senhas
-USERS = {
-    "admin": "senha_admin123",
-    "financeiro": "senha_financeiro456"
-}
+USERS = {"admin": "senha_admin123", "financeiro": "senha_financeiro456"}
 
 # Estado de login
 if "logged_in" not in st.session_state:
@@ -61,7 +58,7 @@ if st.session_state.logged_in:
             ])
 
     def save_data(df):
-        df.to_sql(TABLE_NAME, con=engine, if_exists='replace', index=False)
+        df.to_sql(TABLE_NAME, con=engine, if_exists='append', index=False)
 
     data = load_data()
 
@@ -132,7 +129,7 @@ if st.session_state.logged_in:
                 "ultima_edicao_por": st.session_state.usuario,
                 "ultima_edicao_em": hora_brasilia
             }
-            data = pd.concat([data, pd.DataFrame([new_row])], ignore_index=True)
+            data = pd.DataFrame([new_row])
             save_data(data)
             st.success("Registro salvo com sucesso!")
 
